@@ -1,0 +1,19 @@
+[package]
+name = "app-server"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "flexnetos_github_app webhook ingress server (axum); local + tunnel"
+
+[[bin]]
+name = "fxapp-server"
+path = "src/main.rs"
+
+[dependencies]
+app-core = { path = "../app-core" }
+axum = "0.7"
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "net", "signal"] }
+anyhow = "1"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }

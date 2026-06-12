@@ -1,0 +1,12 @@
+[workspace]
+resolver = "2"
+members = ["crates/app-core", "crates/app-server", "crates/app-cli"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+repository = "https://github.com/FlexNetOS/flexnetos_github_app"
+
+[profile.release]
+strip = true
