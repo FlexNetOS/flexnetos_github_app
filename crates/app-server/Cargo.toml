@@ -15,5 +15,6 @@ app-core = { path = "../app-core" }
 axum = "0.7"
 tokio = { version = "1", features = ["macros", "rt-multi-thread", "net", "signal"] }
 anyhow = "1"
+serde_json = "1"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }

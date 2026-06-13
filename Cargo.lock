@@ -96,6 +96,7 @@ dependencies = [
  "anyhow",
  "app-core",
  "axum",
+ "serde_json",
  "tokio",
  "tracing",
  "tracing-subscriber",
