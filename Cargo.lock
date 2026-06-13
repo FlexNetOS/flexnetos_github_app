@@ -74,6 +74,7 @@ dependencies = [
  "anyhow",
  "app-core",
  "clap",
+ "serde_json",
 ]
 
 [[package]]

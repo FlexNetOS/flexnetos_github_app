@@ -7,6 +7,8 @@
 //! - [`merge_gate`] — verdict-as-check-run executor + auto-merge guard (P3).
 //! - [`router`] — verified-event → local dispatch + protected-files denylist.
 //! - [`dispatch`] — routed dispatch → signed JobSpec envelope → `flexnetos_runner` over UDS (P2).
+//! - [`manifest`] — GitHub App Manifest flow: deterministic manifest + conversion parsing for the
+//!   reproducible `fxapp register` bootstrap (the automated NEEDS-HUMAN-D replacement).
 //!
 //! This layer performs no network/disk I/O itself; concrete impls (secretd UDS client,
 //! GitHub REST) live behind the traits here and are wired in `app-server`. The one exception
@@ -16,6 +18,7 @@
 pub mod dispatch;
 pub mod error;
 pub mod jwt;
+pub mod manifest;
 pub mod merge_gate;
 pub mod mint;
 pub mod router;
@@ -23,3 +26,7 @@ pub mod webhook;
 
 pub use dispatch::{build_frame, DispatchRequest, DispatchResponse, JobMeta};
 pub use error::{CoreError, Result};
+pub use manifest::{
+    build_manifest, install_url, org_create_url, parse_conversion, Conversion, ManifestConfig,
+    ManifestPermission,
+};
