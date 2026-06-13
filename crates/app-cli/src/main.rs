@@ -83,6 +83,13 @@ enum Cmd {
         /// Browser user-data-dir with a logged-in GitHub session (org owner) for the approver.
         #[arg(long)]
         browser_profile: Option<String>,
+        /// System browser channel for the approver (e.g. `chrome`, `msedge`, `chromium`). Use this
+        /// where playwright ships no bundled chromium (e.g. ubuntu 26.04). Empty ⇒ bundled chromium.
+        #[arg(long, default_value = "")]
+        browser_channel: String,
+        /// Explicit browser executable path for the approver (overrides --browser-channel).
+        #[arg(long, default_value = "")]
+        browser_executable: String,
         /// Path to the node/playwright approver script.
         #[arg(long, default_value = "scripts/bootstrap/auto-approve.mjs")]
         approver: String,
@@ -147,6 +154,8 @@ fn main() -> anyhow::Result<()> {
             public,
             auto_approve,
             browser_profile,
+            browser_channel,
+            browser_executable,
             approver,
             dry_run,
         } => register(RegisterArgs {
@@ -158,6 +167,8 @@ fn main() -> anyhow::Result<()> {
             public,
             auto_approve,
             browser_profile,
+            browser_channel,
+            browser_executable,
             approver,
             dry_run,
         })?,
@@ -184,6 +195,8 @@ struct RegisterArgs {
     public: bool,
     auto_approve: bool,
     browser_profile: Option<String>,
+    browser_channel: String,
+    browser_executable: String,
     approver: String,
     dry_run: bool,
 }
@@ -231,6 +244,8 @@ fn register(a: RegisterArgs) -> anyhow::Result<()> {
             ("FXAPP_REDIRECT", &a.redirect_url),
             ("FXAPP_AUTO_APPROVE", if a.auto_approve { "1" } else { "0" }),
             ("FXAPP_BROWSER_PROFILE", &profile),
+            ("FXAPP_BROWSER_CHANNEL", &a.browser_channel),
+            ("FXAPP_BROWSER_EXECUTABLE", &a.browser_executable),
         ],
     )?;
     let code = created["code"]
@@ -277,6 +292,8 @@ fn register(a: RegisterArgs) -> anyhow::Result<()> {
                     ("FXAPP_INSTALL_URL", &iurl),
                     ("FXAPP_AUTO_APPROVE", "1"),
                     ("FXAPP_BROWSER_PROFILE", &profile),
+                    ("FXAPP_BROWSER_CHANNEL", &a.browser_channel),
+                    ("FXAPP_BROWSER_EXECUTABLE", &a.browser_executable),
                 ],
             )?;
             if let Some(id) = inst.get("installation_id").and_then(|v| v.as_u64()) {

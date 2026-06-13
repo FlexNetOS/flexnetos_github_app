@@ -31,11 +31,19 @@ async function openContext() {
   // auto-approve ⇒ headless (needs a profile already logged in). Otherwise headful for the human.
   const headless = auto && profile !== '';
   const userDataDir = profile || ''; // '' => ephemeral persistent context
-  log(`launching chromium (headless=${headless}, profile=${profile || '<ephemeral>'})`);
-  return chromium.launchPersistentContext(userDataDir, {
-    headless,
-    args: ['--no-first-run', '--no-default-browser-check'],
-  });
+  // Playwright ships no bundled chromium for every OS (e.g. ubuntu 26.04). Drive a system browser
+  // instead when FXAPP_BROWSER_CHANNEL ("chrome"|"msedge"|"chromium") or FXAPP_BROWSER_EXECUTABLE
+  // is set; otherwise fall back to playwright's bundled chromium.
+  const channel = env('FXAPP_BROWSER_CHANNEL', '');
+  const executablePath = env('FXAPP_BROWSER_EXECUTABLE', '');
+  const opts = { headless, args: ['--no-first-run', '--no-default-browser-check'] };
+  if (channel) opts.channel = channel;
+  if (executablePath) opts.executablePath = executablePath;
+  log(
+    `launching ${channel || executablePath || 'bundled chromium'} ` +
+      `(headless=${headless}, profile=${profile || '<ephemeral>'})`,
+  );
+  return chromium.launchPersistentContext(userDataDir, opts);
 }
 
 async function shot(page, tag) {
