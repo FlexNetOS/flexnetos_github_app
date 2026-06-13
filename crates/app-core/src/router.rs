@@ -58,6 +58,58 @@ pub fn route(ctx: &EventContext) -> Dispatch {
     }
 }
 
+/// Build an [`EventContext`] from a parsed webhook payload and its event kind. Tolerant:
+/// any missing field becomes `None`, which routes to [`Dispatch::Ignore`] rather than panics.
+pub fn event_context_from_payload(kind: EventKind, payload: &serde_json::Value) -> EventContext {
+    let repo = payload
+        .pointer("/repository/full_name")
+        .and_then(|v| v.as_str())
+        .unwrap_or_default()
+        .to_string();
+    let action = payload
+        .get("action")
+        .and_then(|v| v.as_str())
+        .map(String::from);
+    let pr_number = payload
+        .pointer("/pull_request/number")
+        .and_then(|v| v.as_u64());
+    let head_sha = match &kind {
+        EventKind::PullRequest => payload
+            .pointer("/pull_request/head/sha")
+            .and_then(|v| v.as_str())
+            .map(String::from),
+        EventKind::Push => payload
+            .get("after")
+            .and_then(|v| v.as_str())
+            .map(String::from),
+        _ => None,
+    };
+    EventContext {
+        kind,
+        repo,
+        action,
+        pr_number,
+        head_sha,
+    }
+}
+
+/// Whether a pull-request payload originates from a fork — the signal that drives the runner's
+/// fork-PR isolation (ADR-0008 §6). The reliable cross-repo test is head-repo ≠ base-repo.
+/// **Fails safe:** a non-PR payload is `false`; a PR with an absent head repo (e.g. the fork was
+/// deleted) is treated as `true` (untrusted) so it can never be mistaken for a trusted same-repo PR.
+pub fn payload_is_from_fork(payload: &serde_json::Value) -> bool {
+    let pr = match payload.get("pull_request") {
+        Some(p) => p,
+        None => return false,
+    };
+    let head = pr.pointer("/head/repo/full_name").and_then(|v| v.as_str());
+    let base = pr.pointer("/base/repo/full_name").and_then(|v| v.as_str());
+    match (head, base) {
+        (Some(h), Some(b)) => h != b,
+        _ => true,
+    }
+}
+
 /// Protected-files denylist (ADR-0008 §5): a privileged write touching any of these
 /// must be refused / threat-scanned before the trusted writer acts. Conservative match.
 pub fn is_protected(path: &str) -> bool {
@@ -144,5 +196,68 @@ mod tests {
         assert!(is_protected(".meta.yaml"));
         assert!(!is_protected("src/main.rs"));
         assert!(!is_protected("README.md"));
+    }
+
+    #[test]
+    fn pr_payload_parses_into_review_gate_context() {
+        let payload = serde_json::json!({
+            "action": "opened",
+            "repository": { "full_name": "FlexNetOS/x" },
+            "pull_request": { "number": 7, "head": { "sha": "deadbeef" } },
+        });
+        let ctx = event_context_from_payload(EventKind::PullRequest, &payload);
+        assert_eq!(
+            route(&ctx),
+            Dispatch::ReviewGate {
+                repo: "FlexNetOS/x".into(),
+                pr_number: 7,
+                head_sha: "deadbeef".into(),
+            }
+        );
+    }
+
+    #[test]
+    fn push_payload_parses_into_ci_context() {
+        let payload = serde_json::json!({
+            "repository": { "full_name": "FlexNetOS/x" },
+            "after": "cafef00d",
+        });
+        let ctx = event_context_from_payload(EventKind::Push, &payload);
+        assert_eq!(
+            route(&ctx),
+            Dispatch::Ci {
+                repo: "FlexNetOS/x".into(),
+                head_sha: "cafef00d".into(),
+            }
+        );
+    }
+
+    #[test]
+    fn missing_fields_route_to_ignore_not_panic() {
+        let ctx = event_context_from_payload(EventKind::PullRequest, &serde_json::json!({}));
+        assert_eq!(route(&ctx), Dispatch::Ignore);
+    }
+
+    #[test]
+    fn from_fork_detects_cross_repo_and_fails_safe() {
+        let same = serde_json::json!({
+            "pull_request": {
+                "head": { "repo": { "full_name": "FlexNetOS/x" } },
+                "base": { "repo": { "full_name": "FlexNetOS/x" } },
+            }
+        });
+        let cross = serde_json::json!({
+            "pull_request": {
+                "head": { "repo": { "full_name": "attacker/x" } },
+                "base": { "repo": { "full_name": "FlexNetOS/x" } },
+            }
+        });
+        let deleted_fork = serde_json::json!({
+            "pull_request": { "base": { "repo": { "full_name": "FlexNetOS/x" } } }
+        });
+        assert!(!payload_is_from_fork(&same));
+        assert!(payload_is_from_fork(&cross));
+        assert!(payload_is_from_fork(&deleted_fork)); // fails safe
+        assert!(!payload_is_from_fork(&serde_json::json!({}))); // non-PR
     }
 }
