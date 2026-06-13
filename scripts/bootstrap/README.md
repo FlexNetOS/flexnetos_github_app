@@ -33,6 +33,7 @@ the only way to remove the human, and it's what `--auto-approve` does.
 | `cloudflared` + `cloudflared login` | the webhook tunnel | `cloudflared tunnel list` |
 | a domain on your Cloudflare account | named (stable) tunnel hostname | dashboard → your zone |
 | `node` 18+ and `npm install` here | the playwright approver | `node -v` |
+| a system Chrome/Chromium (where playwright ships no bundled chromium, e.g. ubuntu 26.04) | the browser the approver drives | `which google-chrome` |
 | `gh auth login` as a FlexNetOS **org owner** | converts the manifest code | `gh auth status` |
 | envctl unlocked (`secretctl status`) | sealing the credentials | `secretctl status` |
 | a chromium profile logged into GitHub as an org owner | the 0-click browser robot | see below |
@@ -71,9 +72,14 @@ Or drive the Rust CLI directly:
 
 ```bash
 fxapp register --webhook-url https://app.yourzone.dev/webhook \
-  --auto-approve --browser-profile "$FXAPP_BROWSER_PROFILE"
+  --auto-approve --browser-profile "$FXAPP_BROWSER_PROFILE" --browser-channel chrome
 fxapp register --webhook-url https://x/webhook --dry-run   # preview only
 ```
+
+**System browser:** playwright has no bundled chromium on every OS (e.g. ubuntu 26.04). Pass
+`--browser-channel chrome` (or `msedge`/`chromium`, or `--browser-executable /path`) to drive a
+system browser. `bootstrap.sh` defaults `BROWSER_CHANNEL=chrome`; set it empty to use the bundled
+chromium where available.
 
 ## After bootstrap
 

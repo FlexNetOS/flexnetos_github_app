@@ -1,0 +1,2 @@
+# Local-only browser-robot deps; installed via `npm install` (see README).
+node_modules/

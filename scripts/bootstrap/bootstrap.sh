@@ -24,6 +24,9 @@ LOCAL_URL="${LOCAL_URL:-http://localhost:8787}"
 AUTO_APPROVE="${AUTO_APPROVE:-1}"
 DRY_RUN="${DRY_RUN:-0}"
 TUNNEL_MODE="${TUNNEL_MODE:-$([ -n "${HOSTNAME:-}" ] && echo named || echo quick)}"
+# Playwright has no bundled chromium on some OSes (e.g. ubuntu 26.04); drive a system browser.
+# Default to system Chrome; set BROWSER_CHANNEL="" to use playwright's bundled chromium instead.
+BROWSER_CHANNEL="${BROWSER_CHANNEL:-chrome}"
 
 # ---- preflight ---------------------------------------------------------------
 log "preflight…"
@@ -67,6 +70,7 @@ log "webhook URL: ${WEBHOOK_URL}"
 log "registering the App (auto_approve=${AUTO_APPROVE})…"
 args=(register --org "$ORG" --name "$APP_NAME" --webhook-url "$WEBHOOK_URL"
       --approver "$here/auto-approve.mjs")
+[ -n "$BROWSER_CHANNEL" ] && args+=(--browser-channel "$BROWSER_CHANNEL")
 [ "$AUTO_APPROVE" = "1" ] && args+=(--auto-approve --browser-profile "${FXAPP_BROWSER_PROFILE}")
 cargo run -q --manifest-path "$repo/Cargo.toml" -p app-cli -- "${args[@]}"
 log "done. The App private key + webhook secret are sealed in envctl; start fxapp-server behind the tunnel."
