@@ -1,0 +1,14 @@
+{
+  "name": "fxapp-bootstrap",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Browser robot for the flexnetos_github_app GitHub App Manifest bootstrap (NEEDS-HUMAN-D automation).",
+  "scripts": {
+    "postinstall": "playwright install chromium",
+    "approve": "node auto-approve.mjs"
+  },
+  "dependencies": {
+    "playwright": "^1.48.0"
+  }
+}
