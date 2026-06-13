@@ -30,3 +30,8 @@ pub use manifest::{
     build_manifest, install_url, org_create_url, parse_conversion, Conversion, ManifestConfig,
     ManifestPermission,
 };
+pub use merge_gate::{
+    build_check_run_argv, build_enable_auto_merge_argv, build_resolve_pr_node_id_argv,
+    ensure_armable, Conclusion, GhCliInvoker, GithubInvoker, GithubMergeGate, MergeGate,
+    MergeGateError, UnwiredMergeGate, Verdict,
+};
